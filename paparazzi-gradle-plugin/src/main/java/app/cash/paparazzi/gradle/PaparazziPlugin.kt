@@ -15,6 +15,7 @@
  */
 package app.cash.paparazzi.gradle
 
+import app.cash.paparazzi.gradle.reporting.PaparazziTestReporter
 import app.cash.paparazzi.gradle.utils.artifactViewFor
 import app.cash.paparazzi.gradle.utils.relativize
 import com.android.build.api.variant.AndroidComponentsExtension
@@ -31,6 +32,7 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIB
 import org.gradle.api.file.Directory
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.artifacts.transform.UnzipTransform
+import org.gradle.api.internal.tasks.testing.report.TestReporter
 import org.gradle.api.logging.LogLevel.LIFECYCLE
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
@@ -38,6 +40,7 @@ import org.gradle.api.reporting.ReportingExtension
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.options.Option
+import org.gradle.api.tasks.testing.AbstractTestTask
 import org.gradle.api.tasks.testing.Test
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP
@@ -177,6 +180,8 @@ public class PaparazziPlugin @Inject constructor(
       val testTaskProvider =
         project.tasks.withType(Test::class.java).named { it == "test$testVariantSlug" }
       testTaskProvider.configureEach { test ->
+        //test.setTestReporter(PaparazziTestReporter())
+
         test.systemProperties["paparazzi.test.resources"] =
           writeResourcesTask.flatMap { it.paparazziResources.asFile }.get().path
         test.systemProperties["paparazzi.project.dir"] = projectDirectory.toString()
@@ -319,6 +324,14 @@ public class PaparazziPlugin @Inject constructor(
   private fun Provider<List<Directory>>?.relativize(directory: Directory): Provider<List<String>> =
     this?.map { dirs -> dirs.map { directory.relativize(it.asFile) } }
       ?: providerFactory.provider { emptyList() }
+}
+
+private fun <T : AbstractTestTask> T.setTestReporter(testReporter: TestReporter) {
+  AbstractTestTask::class.java
+    .getDeclaredMethod("setTestReporter", TestReporter::class.java).apply {
+      isAccessible = true
+      invoke(this@setTestReporter, testReporter)
+    }
 }
 
 private const val DEFAULT_COMPILE_SDK_VERSION = 34
