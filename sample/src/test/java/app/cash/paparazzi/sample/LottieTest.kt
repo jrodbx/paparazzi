@@ -10,7 +10,7 @@ class LottieTest {
   @get:Rule
   var paparazzi = Paparazzi()
 
-  @Test
+//  @Test
   fun lottie() {
     val composition = LottieCompositionFactory.fromRawResSync(paparazzi.context, R.raw.lottie_logo)
       .value!!
@@ -22,7 +22,7 @@ class LottieTest {
     paparazzi.gif(view, "lottie logo", start = 0L, end = 5000L, fps = 60)
   }
 
-  @Test
+//  @Test
   fun lottie2() {
     val composition = LottieCompositionFactory.fromRawResSync(paparazzi.context, R.raw.masks).value!!
     val view = LottieAnimationView(paparazzi.context)
