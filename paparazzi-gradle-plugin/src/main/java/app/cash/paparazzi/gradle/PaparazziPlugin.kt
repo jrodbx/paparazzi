@@ -15,7 +15,7 @@
  */
 package app.cash.paparazzi.gradle
 
-import app.cash.paparazzi.gradle.reporting.PaparazziTestReporter
+import app.cash.paparazzi.gradle.reporting.gradlek.DefaultTestReport
 import app.cash.paparazzi.gradle.utils.artifactViewFor
 import app.cash.paparazzi.gradle.utils.relativize
 import com.android.build.api.variant.AndroidComponentsExtension
@@ -42,6 +42,8 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.options.Option
 import org.gradle.api.tasks.testing.AbstractTestTask
 import org.gradle.api.tasks.testing.Test
+import org.gradle.internal.operations.BuildOperationExecutor
+import org.gradle.internal.operations.BuildOperationRunner
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -51,7 +53,9 @@ import javax.inject.Inject
 
 @Suppress("unused")
 public class PaparazziPlugin @Inject constructor(
-  private val providerFactory: ProviderFactory
+  private val providerFactory: ProviderFactory,
+  private val buildOperationRunner: BuildOperationRunner,
+  private val buildOperationExecutor: BuildOperationExecutor,
 ) : Plugin<Project> {
   override fun apply(project: Project) {
     val supportedPlugins = listOf("com.android.application", "com.android.library", "com.android.dynamic-feature")
@@ -180,7 +184,14 @@ public class PaparazziPlugin @Inject constructor(
       val testTaskProvider =
         project.tasks.withType(Test::class.java).named { it == "test$testVariantSlug" }
       testTaskProvider.configureEach { test ->
-        //test.setTestReporter(PaparazziTestReporter())
+        test.setTestReporter(
+          DefaultTestReport(
+            buildOperationRunner = test.getBuildOperationRunner(),
+            buildOperationExecutor = test.getBuildOperationExecutor(),
+            isVerifyRun = isVerifyRun,
+            failureSnapshotDir = buildDirectory.dir("paparazzi/failures")
+          )
+        )
 
         test.systemProperties["paparazzi.test.resources"] =
           writeResourcesTask.flatMap { it.paparazziResources.asFile }.get().path
@@ -332,6 +343,22 @@ private fun <T : AbstractTestTask> T.setTestReporter(testReporter: TestReporter)
       isAccessible = true
       invoke(this@setTestReporter, testReporter)
     }
+}
+
+private fun <T : AbstractTestTask> T.getBuildOperationRunner(): BuildOperationRunner {
+  return AbstractTestTask::class.java
+    .getDeclaredMethod("getBuildOperationRunner").apply {
+      isAccessible = true
+    }
+    .invoke(this@getBuildOperationRunner) as BuildOperationRunner
+}
+
+private fun <T : AbstractTestTask> T.getBuildOperationExecutor(): BuildOperationExecutor {
+  return AbstractTestTask::class.java
+    .getDeclaredMethod("getBuildOperationExecutor").apply {
+      isAccessible = true
+    }
+    .invoke(this@getBuildOperationExecutor) as BuildOperationExecutor
 }
 
 private const val DEFAULT_COMPILE_SDK_VERSION = 34

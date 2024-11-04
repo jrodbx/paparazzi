@@ -20,13 +20,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.cash.paparazzi.sample.ResourcesDemoView.Companion.plurals
+import kotlin.random.Random
 
 const val IMAGE_SIZE = 120f
 
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 fun ResourcesDemo() {
   Column(
@@ -92,7 +94,9 @@ fun ResourcesDemo() {
           color = Color.Black
         )
         Text(
-          modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+          modifier = Modifier
+            .weight(1f)
+            .padding(horizontal = 4.dp),
           text = resources.getQuantityString(R.plurals.plural_name, quantity),
           color = Color.Black
         )
